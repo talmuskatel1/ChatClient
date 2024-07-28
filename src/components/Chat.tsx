@@ -20,6 +20,7 @@ import { Message, Group } from '../types/types';
 import {
   ChatContainer, MessageList, MessageContainer, MessageBubble, InputArea
 } from '../styles/StyledComponents';
+import { findDOMNode } from 'react-dom';
 
 const Chat: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -40,6 +41,7 @@ const Chat: React.FC = () => {
   const navigate = useNavigate();
   const [socketError, setSocketError] = useState<string | null>(null);
   const [roomMembers, setRoomMembers] = useState<string[]>([]);
+  const [userNames, setUserNames] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     const newSocket = io('http://localhost:3000', {
@@ -88,12 +90,20 @@ const Chat: React.FC = () => {
     fetchUserGroups(storedUserId);
   }, [navigate]);
 
-  useEffect(() => { //guess where real time rendering problem for sunday
+  useEffect(() => { 
     if (messageListRef.current) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, [messages]);
 
+
+  useEffect(() => {
+    messages.forEach(message => {
+      if (message.senderId !== userId && !userNames[message.senderId]) {
+        handleDifferentUserRender(message.senderId);
+      }
+    });
+  }, [messages, userId, userNames]);
   const fetchUserGroups = async (userId: string) => {
     try {
       const groupIdsResponse = await API.get(`/users/${userId}/groups`);
@@ -119,6 +129,23 @@ const Chat: React.FC = () => {
       setError('Failed to create group');
     }
   };
+
+  
+
+  const handleDifferentUserRender = async (senderId: string) => {
+    if (userNames[senderId]) {
+      return userNames[senderId];
+    }
+    try {
+      const response = await API.get(`/users/${senderId}`);
+      const userName = response.data.username; // Assuming the user object has a 'username' field
+      setUserNames(prev => ({...prev, [senderId]: userName}));
+      return userName;
+    } catch (error) {
+      console.log("Error in handleDifferentUserRender", error);
+      return "Unknown User";
+    }
+  }
 
   const handleJoinGroup = async () => {
     if (joinGroupName.trim() === '') return;
@@ -302,18 +329,18 @@ const Chat: React.FC = () => {
       {selectedRoom ? (
         <Box display="flex" flexGrow={1}>
           <Box flexGrow={1} display="flex" flexDirection="column">
-            <MessageList ref={messageListRef}>
-              {messages.map((message) => (
-                <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
-                  <MessageBubble isCurrentUser={message.senderId === userId}>
-                    <Typography variant="body2" color="textSecondary">
-                      {message.senderId === userId ? 'You' : 'Other User'}
-                    </Typography>
-                    <Typography variant="body1">{message.content}</Typography>
-                  </MessageBubble>
-                </MessageContainer>
-              ))}
-            </MessageList>
+          <MessageList ref={messageListRef}>
+  {messages.map((message) => (
+    <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
+      <MessageBubble isCurrentUser={message.senderId === userId}>
+        <Typography variant="body2" color="textSecondary">
+          {message.senderId === userId ? 'You' : (userNames[message.senderId] || 'Loading...')}
+        </Typography>
+        <Typography variant="body1">{message.content}</Typography>
+      </MessageBubble>
+    </MessageContainer>
+  ))}
+</MessageList>
 
             <InputArea>
               <Grid container spacing={2}>
