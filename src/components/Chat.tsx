@@ -42,28 +42,37 @@ const Chat: React.FC = () => {
   const [roomMembers, setRoomMembers] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!socket) return;
-  
-    const handleMessage = (message: Message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    };
-  
-    socket.on('connect', () => console.log('Connected to server'));
-    socket.on('message', handleMessage);
-    socket.on('error', (error: { message: string }) => {
-      console.error('Socket error:', error);
-      setSocketError(error.message);
+    const newSocket = io('http://localhost:3000', {
+      withCredentials: true,
+      transports: ['websocket'],
     });
-    socket.on('updateMembers', (members: any[]) => {
-      console.log('Members updated:', members);
-      setRoomMembers(members.map(member => typeof member === 'string' ? member : member.username));
+  
+    newSocket.on('connect', () => {
+      console.log('Connected to server');
+      setSocket(newSocket);
+    });
+  
+    newSocket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setSocketError('Failed to connect to the server');
     });
   
     return () => {
-      socket.off('connect');
+      newSocket.disconnect();
+    };
+  }, []);
+  useEffect(() => {
+    if (!socket) return;
+  
+    const handleMessage = (message: Message) => {
+      console.log('Received message:', message);
+      setMessages((prevMessages) => [...prevMessages, message]);
+    };
+  
+    socket.on('message', handleMessage);
+  
+    return () => {
       socket.off('message', handleMessage);
-      socket.off('error');
-      socket.off('updateMembers');
     };
   }, [socket]);
 
@@ -77,10 +86,6 @@ const Chat: React.FC = () => {
     setUserId(storedUserId);
     setProfilePicture(storedProfilePicture);
     fetchUserGroups(storedUserId);
-
-    const newSocket = io(API_URL, { withCredentials: true });
-    setSocket(newSocket);
-    return () => { newSocket.disconnect(); };
   }, [navigate]);
 
   useEffect(() => { //guess where real time rendering problem for sunday
@@ -146,21 +151,17 @@ const Chat: React.FC = () => {
     }
   };
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (inputMessage.trim() === '' || !selectedRoom || !socket) return;
-    try {
-      const response = await API.post('/messages/send', {
-        senderId: userId,
-        groupId: selectedRoom,
-        content: inputMessage
-      });
-      setInputMessage('');
-      if (!messages.some(m => m._id === response.data._id)) {
-        setMessages(prevMessages => [...prevMessages, response.data]);
-      }
-    } catch (error: any) {
-      setError('Failed to send message');
-    }
+    
+    const messageData = {
+      userId: userId,
+      room: selectedRoom,
+      content: inputMessage
+    };
+  
+    socket.emit('sendMessage', messageData);
+    setInputMessage('');
   };
 
   const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -189,12 +190,12 @@ const Chat: React.FC = () => {
     }
   };
 
-  // const handleSocketErrorClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
-  //   if (reason === 'clickaway') {
-  //     return;
-  //   }
-  //   setSocketError(null);
-  // };
+  const handleSocketErrorClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSocketError(null);
+  };
 
   const MemberList: React.FC<{ members: any[] }> = ({ members }) => (
     <Box>
@@ -360,7 +361,7 @@ const Chat: React.FC = () => {
       <Snackbar
         open={!!socketError}
         autoHideDuration={6000}
-        // onClose={handleSocketErrorClose}
+        onClose={handleSocketErrorClose}
         message={socketError}
       />
     </ChatContainer>
