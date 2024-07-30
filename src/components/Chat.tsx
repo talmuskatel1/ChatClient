@@ -470,19 +470,18 @@ const Chat: React.FC = () => {
       {selectedRoom ? (
         <Box display="flex" flexGrow={1}>
           <Box flexGrow={1} display="flex" flexDirection="column">
-            <MessageList ref={messageListRef}>
-              {messages.map((message) => (
-                <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
-                  <MessageBubble isCurrentUser={message.senderId === userId}>
-                    <Typography variant="body2" color="textSecondary">
-                      {message.senderId === userId ? 'You' : 'Other User'}
-                    </Typography>
-                    <Typography variant="body1">{message.content}</Typography>
-                  </MessageBubble>
-                </MessageContainer>
-              ))}
-            </MessageList>
-
+          <MessageList ref={messageListRef}>
+  {messages.map((message) => (
+    <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
+      <MessageBubble isCurrentUser={message.senderId === userId}>
+        <Typography variant="body2" color="textSecondary">
+          {message.senderId === userId ? 'You' : (userNames[message.senderId] || 'Loading...')}
+        </Typography>
+        <Typography variant="body1">{message.content}</Typography>
+      </MessageBubble>
+    </MessageContainer>
+  ))}
+</MessageList>
             <InputArea>
               <Grid container spacing={2}>
                 <Grid item xs={10}>
