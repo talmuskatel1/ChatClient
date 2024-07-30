@@ -22,6 +22,7 @@ import { Message, Group } from '../types/types';
 import {
   ChatContainer, MessageList, MessageContainer, MessageBubble, InputArea
 } from '../styles/StyledComponents';
+import { findDOMNode } from 'react-dom';
 
 const Chat: React.FC = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -101,7 +102,8 @@ const Chat: React.FC = () => {
     fetchUserProfilePicture(storedUserId);
     fetchUserGroups(storedUserId);
   }, [navigate]);
-  useEffect(() => { 
+
+  useEffect(() => { //guess where real time rendering problem for sunday
     if (messageListRef.current) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
@@ -123,6 +125,14 @@ const Chat: React.FC = () => {
     });
   }, [messages, userId, userNames]);
 
+
+  useEffect(() => {
+    messages.forEach(message => {
+      if (message.senderId !== userId && !userNames[message.senderId]) {
+        handleDifferentUserRender(message.senderId);
+      }
+    });
+  }, [messages, userId, userNames]);
   const fetchUserGroups = async (userId: string) => {
     try {
       const groupIdsResponse = await API.get(`/users/${userId}/groups`);
@@ -150,21 +160,6 @@ const Chat: React.FC = () => {
       setError('Failed to create group');
     }
   };
-
-  const handleDifferentUserRender = async (senderId: string) => {
-    if (userNames[senderId]) {
-      return userNames[senderId];
-    }
-    try {
-      const response = await API.get(`/users/${senderId}`);
-      const userName = response.data.username;
-      setUserNames(prev => ({...prev, [senderId]: userName}));
-      return userName;
-    } catch (error) {
-      console.log("Error in handleDifferentUserRender", error);
-      return "Unknown User";
-    }
-  }
 
   const handleJoinGroup = async () => {
     if (joinGroupName.trim() === '') return;
@@ -243,6 +238,21 @@ const Chat: React.FC = () => {
     }
     setSocketError(null);
   };
+
+  const handleDifferentUserRender = async (senderId: string) => {
+    if (userNames[senderId]) {
+      return userNames[senderId];
+    }
+    try {
+      const response = await API.get(`/users/${senderId}`);
+      const userName = response.data.username; 
+      setUserNames(prev => ({...prev, [senderId]: userName}));
+      return userName;
+    } catch (error) {
+      console.log("Error in handleDifferentUserRender", error);
+      return "Unknown User";
+    }
+  }
 
   const handleUpdateProfilePicture = async () => {
     try {
@@ -465,7 +475,7 @@ const Chat: React.FC = () => {
                 <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
                   <MessageBubble isCurrentUser={message.senderId === userId}>
                     <Typography variant="body2" color="textSecondary">
-                      {message.senderId === userId ? 'You' : (userNames[message.senderId] || 'Loading...')}
+                      {message.senderId === userId ? 'You' : 'Other User'}
                     </Typography>
                     <Typography variant="body1">{message.content}</Typography>
                   </MessageBubble>
