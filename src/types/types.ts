@@ -7,9 +7,7 @@ export type Message = {
   
   export type Group = {
     _id: string;
-    name?: string;  
-    groupPicture?: string;
-
+    name?: string;
   };
   
   export type User = {

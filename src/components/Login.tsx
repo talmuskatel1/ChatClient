@@ -8,11 +8,12 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
   const handleLogin = async () => {
     try {
       const response = await API.post('/users/login', { username, password });
       localStorage.setItem('userId', response.data.userId);
-      localStorage.setItem('profilePicture', response.data.profilePicture || '');
+      localStorage.setItem('profilePicture', response.data.profilePictureUrl);
       navigate('/chat');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Login failed. Please try again.');

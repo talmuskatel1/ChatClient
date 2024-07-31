@@ -28,4 +28,28 @@ export const MessageBubble = styled(Paper, { shouldForwardProp: (prop) => prop !
   })
 );
 
-export const InputArea = styled(Box)(({ theme }) => ({ padding: theme.spacing(2), backgroundColor: theme.palette.grey[100] }));
+export const ChatContent = styled(Box)({
+  flexGrow: 1,
+  display: 'flex',
+  overflow: 'hidden',
+});
+
+export const MessageArea = styled(Box)({
+  flexGrow: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+});
+
+export const InputArea = styled(Box)({
+  padding: '16px',
+  backgroundColor: '#f5f5f5',
+  borderTop: '1px solid #e0e0e0',
+});
+
+export const ScrollableMessageArea = styled(Box)({
+  flexGrow: 1,
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+});
