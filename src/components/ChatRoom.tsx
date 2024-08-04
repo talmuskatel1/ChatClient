@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Grid, TextField, Button } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { Message } from '../types/types';
+import { Message } from '../types/Types';
 import { ScrollableMessageArea, MessageList, MessageContainer, MessageBubble, InputArea } from '../styles/StyledComponents';
 
 interface ChatRoomProps {
@@ -20,7 +20,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ messages, userId, userNames, inputM
       <ScrollableMessageArea>
         <MessageList ref={messageListRef}>
           {messages.map((message) => (
-            <MessageContainer key={`msg-${message._id || `${message.senderId}-${Date.now()}`}`} isCurrentUser={message.senderId === userId}>
+            <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
               <MessageBubble isCurrentUser={message.senderId === userId}>
                 <Typography variant="body2" color="textSecondary">
                   {message.senderId === userId 

@@ -7,12 +7,12 @@ import {
   Menu, MenuItem, ListItemIcon
 } from '@mui/material';
 import { 
-  Menu as MenuIcon, 
   Settings as SettingsIcon, 
   UploadFile as UploadFileIcon
 } from '@mui/icons-material';
-import { API, API_URL } from '../services/api';
-import { Message, Group } from '../types/types';
+import { API } from '../services/api';
+import { API_URL } from '../variables/Variables';
+import { Message, Group } from '../types/Types';
 import { ChatContainer } from '../styles/StyledComponents';
 import GroupList from './GroupList';
 import ChatRoom from './ChatRoom';
@@ -38,6 +38,7 @@ const Chat: React.FC = () => {
   const [roomMembers, setRoomMembers] = useState<string[]>([]);
   const [userNames, setUserNames] = useState<{[key: string]: string}>({});
   const [currentUserName, setCurrentUserName] = useState<string>('');
+
 
   useEffect(() => {
     const fetchCurrentUserName = async () => {
@@ -80,12 +81,10 @@ const Chat: React.FC = () => {
     if (!socket) return;
   
     const handleMessage = (message: Message) => {
-      console.log('Received message:', message);
       setMessages((prevMessages) => [...prevMessages, message]);
     };
   
     const handleMemberUpdate = (members: string[]) => {
-      console.log('Room members updated:', members);
       setRoomMembers(members);
     };
   
@@ -116,12 +115,73 @@ const Chat: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    messages.forEach(message => {
-      if (message.senderId && message.senderId !== userId && !userNames[message.senderId]) {
-        handleDifferentUserRender(message.senderId);
+    const fetchMissingUserNames = async () => {
+      const missingUserIds = messages
+        .map(message => message.senderId)
+        .filter(senderId => senderId && senderId !== userId && !userNames[senderId]);
+  
+      const uniqueMissingUserIds = [...new Set(missingUserIds)];
+  
+      for (const senderId of uniqueMissingUserIds) {
+        await handleDifferentUserRender(senderId);
+      }
+    };
+  
+    fetchMissingUserNames();
+  }, [messages, userId, userNames]);
+
+  useEffect(() => {
+    const fetchMemberNames = async () => {
+      for (const memberId of roomMembers) {
+        if (memberId !== userId && !userNames[memberId]) {
+          await handleDifferentUserRender(memberId);
+        }
+      }
+    };
+  
+    fetchMemberNames();
+  }, [roomMembers]);
+
+  useEffect(() => {
+    console.log("userNames updated:", userNames);
+  }, [userNames]);
+
+
+  useEffect(() => {
+    console.log("userNames updated:", userNames);
+  }, [userNames]);
+  
+  useEffect(() => {
+    if (!socket) return;
+  
+    socket.on('memberLeft', ({ userId: leftUserId, groupId }) => {
+      setRoomMembers(prevMembers => prevMembers.filter(memberId => memberId !== leftUserId));
+      setGroups(prevGroups => prevGroups.map(group => 
+        group._id === groupId 
+          ? { ...group, members: group.members.filter(id => id !== leftUserId) } 
+          : group
+      ));
+  
+      if (leftUserId === userId) {
+        setSelectedRoom(null);
+        setMessages([]);
       }
     });
-  }, [messages, userId, userNames]);
+  
+    socket.on('groupDeleted', ({ groupId }) => {
+      setGroups(prevGroups => prevGroups.filter(group => group._id !== groupId));
+      if (selectedRoom === groupId) {
+        setSelectedRoom(null);
+        setMessages([]);
+        setRoomMembers([]);
+      }
+    });
+  
+    return () => {
+      socket.off('memberLeft');
+      socket.off('groupDeleted');
+    };
+  }, [socket, selectedRoom, userId]);
 
   const fetchUserGroups = async (userId: string) => {
     try {
@@ -152,6 +212,12 @@ const Chat: React.FC = () => {
         setMessages(messagesResponse.data);
         setSelectedRoom(room);
         setRoomMembers(members);
+  
+        for (const memberId of members) {
+          if (memberId !== userId && !userNames[memberId]) {
+            await handleDifferentUserRender(memberId);
+          }
+        }
       });
     } catch (error) {
       console.log(error, 'Failed to join room');
@@ -217,44 +283,39 @@ const Chat: React.FC = () => {
     try {
       const response = await API.get(`/users/${senderId}`);
       const userName = response.data.username; 
-      setUserNames(prev => ({...prev, [senderId]: userName}));
+      setUserNames(prev => {
+        const newUserNames = {...prev, [senderId]: userName};
+        console.log("Updated userNames:", newUserNames);
+        return newUserNames;
+      });
       return userName;
     } catch (error) {
       console.log("Error in handleDifferentUserRender", error);
       return "Unknown User";
     }
   }
-
   const handleUpdateProfilePicture = async () => {
     try {
       const response = await API.put(`/users/${userId}/profile-picture`, { profilePictureUrl: newProfilePictureUrl });
-      console.log('Profile picture update response:', response.data);
       if (response.data && response.data.profilePicture) {
         setProfilePicture(response.data.profilePicture);
         localStorage.setItem('profilePicture', response.data.profilePicture);
-      } else {
-        console.error('Profile picture URL not found in the response');
+        setIsProfilePictureDialogOpen(false);
+        fetchUserProfilePicture(userId);
       }
-      setIsProfilePictureDialogOpen(false);
-      fetchUserProfilePicture(userId);
     } catch (error) {
-      console.error('Failed to update profile picture:', error);
       setError('Failed to update profile picture');
     }
   };
-
   const fetchUserProfilePicture = async (userId: string) => {
     try {
       const response = await API.get(`users/${userId}/profile-picture`);
-      console.log('Fetched profile picture:', response.data);
       if (response.data && response.data.profilePicture) {
         setProfilePicture(response.data.profilePicture);
         localStorage.setItem('profilePicture', response.data.profilePicture);
-      } else {
-        console.log('No profile picture found for user');
       }
     } catch (error) {
-      console.error("Error in fetchUserProfilePicture", error);
+      console.log("error in fetchUserProfilePicture", error);
     }
   };
 
@@ -277,19 +338,16 @@ const Chat: React.FC = () => {
     }
   };
 
-  const handleLeaveGroup = async () => {
-    if (!selectedRoom) return;
-    try {
-      await API.post(`/groups/${selectedRoom}/leave`, { userId });
-      setGroups(prevGroups => prevGroups.filter(group => group._id !== selectedRoom));
-      setSelectedRoom(null);
-      setMessages([]);
-      setRoomMembers([]);
-    } catch (error) {
-      setError('Failed to leave group');
-    }
+  const handleLeaveGroup = () => {
+    if (!selectedRoom || !socket) return;
+    socket.emit('leaveGroup', { userId, groupId: selectedRoom });
+    
+    setGroups(prevGroups => prevGroups.filter(group => group._id !== selectedRoom));
+    setSelectedRoom(null);
+    setMessages([]);
+    setRoomMembers([]);
   };
-
+  
   return (
     <ChatContainer>
       <AppBar position="static">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
-import { Group } from '../types/types';
+import { Group } from '../types/Types';
 import AddIcon from '@mui/icons-material/Add';
 import { API } from '../services/api';
 
@@ -58,7 +58,7 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
           </ListItemButton>
         </ListItem>
         {groups.map((group) => (
-          <ListItem key={`group-${group._id}`} disablePadding>
+          <ListItem key={group._id} disablePadding>
             <ListItemButton onClick={() => group._id && onJoinRoom(group._id)}>
               <ListItemIcon>
                 <Avatar src={group.groupPicture} />
