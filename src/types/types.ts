@@ -8,6 +8,8 @@ export type Message = {
   export type Group = {
     _id: string;
     name?: string;
+    members: Message[];
+    groupPicture?: string;
   };
   
   export type User = {

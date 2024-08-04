@@ -12,10 +12,10 @@ interface MemberListProps {
 const MemberList: React.FC<MemberListProps> = ({ members, userNames, onUpdateGroupPicture, onLeaveGroup }) => {
   return (
     <Box>
-      <Typography variant="h6">Room Members</Typography>
+      <Typography >Room Members</Typography>
       <List>
         {members.map((memberId) => (
-          <ListItem key={`member-${memberId}`}>
+          <ListItem key={memberId}>
             <ListItemText primary={userNames[memberId] || `Loading... (${memberId})`} />
           </ListItem>
         ))}
