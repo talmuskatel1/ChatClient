@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
-import { Group } from '../types/Types';
+import { Group } from '../types/types';
 import AddIcon from '@mui/icons-material/Add';
 import { API } from '../services/api';
 
