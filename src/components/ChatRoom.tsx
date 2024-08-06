@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Grid, TextField, Button } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { Message } from '../types/Types';
+import { Message } from '../types/types';
 import { ScrollableMessageArea, MessageList, MessageContainer, MessageBubble, InputArea } from '../styles/StyledComponents';
 
 interface ChatRoomProps {

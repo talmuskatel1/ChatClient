@@ -8,7 +8,7 @@ export type Message = {
   export type Group = {
     _id: string;
     name?: string;
-    members: Message[];
+    members: string[];
     groupPicture?: string;
   };
   
