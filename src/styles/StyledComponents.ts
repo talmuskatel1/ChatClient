@@ -10,6 +10,8 @@ export const ChatContainer = styled(Box)({
 });
 export const MessageList = styled(List)({ flexGrow: 1, overflow: 'auto', padding: '16px' });
 
+
+//chat-gpt
 export const MessageContainer = styled(Box, { shouldForwardProp: (prop) => prop !== 'isCurrentUser' })<{ isCurrentUser: boolean }>(
   ({ isCurrentUser, theme }) => ({
     display: 'flex',
@@ -17,6 +19,7 @@ export const MessageContainer = styled(Box, { shouldForwardProp: (prop) => prop 
     marginBottom: theme.spacing(1),
   })
 );
+//chat-gpt
 
 export const MessageBubble = styled(Paper, { shouldForwardProp: (prop) => prop !== 'isCurrentUser' })<{ isCurrentUser: boolean }>(
   ({ isCurrentUser, theme }) => ({
