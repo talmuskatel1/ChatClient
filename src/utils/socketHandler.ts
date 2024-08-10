@@ -1,20 +1,13 @@
 import { io, Socket } from 'socket.io-client';
 import { API_URL } from '../variables/Variables';
 import { Message } from '../types/types';
-import { API } from '../services/api';
 
 let socket: Socket | null = null;
 
-
-export const initializeSocket = (
-  userId: string,
-  onConnect: () => void,
-  onConnectError: (error: Error) => void
-): void => {
+export const initializeSocket = (onConnect: () => void, onConnectError: (error: Error) => void): void => {
   socket = io(API_URL, {
     withCredentials: true,
     transports: ['websocket'],
-    query: { userId }
   });
 
   socket.on('connect', onConnect);
@@ -64,7 +57,11 @@ export const onJoinSuccess = (callback: (data: { room: string; members: string[]
   }
 };
 
-
+export const onMemberLeft = (callback: (data: { userId: string; groupId: string }) => void): void => {
+    if (socket) {
+      socket.on('memberLeft', callback);
+    }
+  };
   
   export const onGroupDeleted = (callback: (data: { groupId: string }) => void): void => {
     if (socket) {
@@ -77,22 +74,3 @@ export const removeAllListeners = (): void => {
     socket.removeAllListeners();
   }
 };
-
-export const onLeftGroup = (callback: (data: { userId: string; groupId: string }) => void): void => {
-  if (socket) {
-    socket.on('leftGroup', callback);
-  }
-};
-
-export const onMemberLeft = (callback: (data: { userId: string; groupId: string }) => void): void => {
-  if (socket) {
-    socket.on('memberLeft', callback);
-  }
-};
-
-export const removeListeners = (events: string[]): void => {
-  if (socket) {
-    events.forEach(event => socket?.removeAllListeners(event));
-  }
-};
-
