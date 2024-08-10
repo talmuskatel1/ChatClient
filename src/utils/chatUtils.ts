@@ -18,13 +18,16 @@ export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
 export const fetchUserProfilePicture = async (userId: string): Promise<string | null> => {
   try {
     const response = await API.get(`users/${userId}/profile-picture`);
-    console.log('Profile picture response:', response.data);
-    return response.data.profilePicture || null;
+    if (response.data && response.data.profilePicture) {
+      return response.data.profilePicture;
+    }
+    return null;
   } catch (error) {
     console.error("Error in fetchUserProfilePicture", error);
     return null;
   }
 };
+
 export const updateProfilePicture = async (userId: string, newProfilePictureUrl: string): Promise<string> => {
   try {
     const response = await API.put(`/users/${userId}/profile-picture`, { profilePictureUrl: newProfilePictureUrl });
@@ -79,4 +82,3 @@ export const fetchRoomMessages = async (roomId: string): Promise<Message[]> => {
     throw error;
   }
 };
-

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, TextField, Button, Snackbar } from '@mui/material';
 import { API } from '../services/api';
-import { setSessionUserId, setSessionItem } from '../utils/sessionUtils';
 
 const SignUp: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -13,10 +12,7 @@ const SignUp: React.FC = () => {
   const handleSignUp = async () => {
     try {
       const response = await API.post('/users/signup', { username, password });
-      const userId = response.data.userId;
-      setSessionUserId(userId);
-      setSessionItem('profilePicture', response.data.profilePictureUrl);
-      
+      localStorage.setItem('userId', response.data.userId);
       navigate('/chat');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Sign up failed. Please try again.');

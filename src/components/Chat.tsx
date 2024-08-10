@@ -72,6 +72,7 @@ const Chat: React.FC = () => {
               Update Profile Picture
             </MenuItem>
             <MenuItem onClick={handleDisconnect}>Disconnect</MenuItem>
+            <MenuItem onClick={handleDeleteAccount}>Delete Account</MenuItem>
           </Menu>
           {profilePicture && (
             <Avatar src={profilePicture} sx={{ marginLeft: 1 }} />
