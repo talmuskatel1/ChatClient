@@ -1,13 +1,14 @@
 export type Message = {
     _id: string;
     senderId: string;
+    groupId: string;
     content: string;
     createdAt: Date;
   };
   
   export type Group = {
     _id: string;
-    name?: string;
+    name: string;
     members: string[];
     groupPicture?: string;
   };
