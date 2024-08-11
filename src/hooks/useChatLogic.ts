@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Message, Group } from '../types/types';
-import * as chatUtils from '../utils/chatUtils';
+import * as chatUtils from '../services/chatUtils';
 import * as socketHandler from '../utils/socketHandler';
+import { getSessionUserId, setSessionItem, clearSessionData } from '../utils/sessionUtils';
 
 export const useChatLogic = () => {
   const [userId, setUserId] = useState('');
@@ -21,45 +22,58 @@ export const useChatLogic = () => {
   const [roomMembers, setRoomMembers] = useState<string[]>([]);
   const [userNames, setUserNames] = useState<{[key: string]: string}>({});
   const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const messageListRef = useRef<HTMLUListElement>(null);
   const navigate = useNavigate();
-  useEffect(() => {
-    socketHandler.initializeSocket(
-      () => console.log('Connected to server'),
-      (error) => setSocketError('Failed to connect to the server')
-    );
-  
-    return () => {
-      socketHandler.disconnectSocket();
-    };
-  }, []);
   
   useEffect(() => {
-    socketHandler.onMessage((message: Message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-  
-    socketHandler.onMemberUpdate((members: string[]) => {
-      setRoomMembers(members);
-    });
-  
-    socketHandler.onMemberLeft(({ userId: leftUserId, groupId }: { userId: string; groupId: string }) => {
-      setRoomMembers(prevMembers => prevMembers.filter(memberId => memberId !== leftUserId));
+    socketHandler.onMemberLeft((data) => {
+      if (data.groupId === selectedRoom) {
+        setRoomMembers(prevMembers => prevMembers.filter(memberId => memberId !== data.userId));
+      }
       setGroups(prevGroups => prevGroups.map(group => 
-        group._id === groupId 
-          ? { ...group, members: group.members.filter(id => id !== leftUserId) } 
+        group._id === data.groupId 
+          ? { ...group, members: group.members.filter(memberId => memberId !== data.userId) } 
           : group
       ));
+    });
   
-      if (leftUserId === userId) {
-        setSelectedRoom(null);
-        setMessages([]);
+    return () => {
+      socketHandler.removeListeners(['memberLeft']);
+    };
+  }, [selectedRoom]);
+  useEffect(() => {
+    const handleNewMessage = (newMessage: Message) => {
+      console.log('New message received:', newMessage);
+      if (newMessage.groupId === selectedRoom) {
+        setMessages(prevMessages => [...prevMessages, newMessage]);
       }
-    });  
+    };
   
-    socketHandler.onGroupDeleted(({ groupId }) => {
-      setGroups(prevGroups => prevGroups.filter(group => group._id !== groupId));
-      if (selectedRoom === groupId) {
+    socketHandler.onMessage(handleNewMessage);
+  
+    return () => {
+      socketHandler.removeListeners(['message']);
+    };
+  }, [selectedRoom]);
+  
+  useEffect(() => {
+    socketHandler.onLeftGroup((data) => {
+      if (data.userId === userId) {
+        setGroups(prevGroups => prevGroups.filter(group => group._id !== data.groupId));
+        if (selectedRoom === data.groupId) {
+          setSelectedRoom(null);
+          setMessages([]);
+          setRoomMembers([]);
+        }
+      } else {
+        setRoomMembers(prevMembers => prevMembers.filter(memberId => memberId !== data.userId));
+      }
+    });
+  
+    socketHandler.onGroupDeleted((data) => {
+      setGroups(prevGroups => prevGroups.filter(group => group._id !== data.groupId));
+      if (selectedRoom === data.groupId) {
         setSelectedRoom(null);
         setMessages([]);
         setRoomMembers([]);
@@ -67,31 +81,45 @@ export const useChatLogic = () => {
     });
   
     return () => {
-      socketHandler.removeAllListeners();
+      socketHandler.removeListeners(['leftGroup', 'groupDeleted']);
     };
   }, [userId, selectedRoom]);
-  
+
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    if (!storedUserId) {
-      navigate('/login');
-      return;
-    }
-    setUserId(storedUserId);
-    chatUtils.fetchUserProfilePicture(storedUserId).then(setProfilePicture);
-    chatUtils.fetchUserGroups(storedUserId).then(setGroups).catch(() => setError('Failed to fetch user groups'));
-    
-    const fetchCurrentUserName = async () => {
+    const initializeChat = async () => {
+      setIsLoading(true);
+      const sessionUserId = getSessionUserId();
+      if (!sessionUserId) {
+        navigate('/login');
+        return;
+      }
+      setUserId(sessionUserId);
+
       try {
-        const username = await chatUtils.fetchUserName(storedUserId);
-        setCurrentUserName(username);
-        setUserNames(prev => ({...prev, [storedUserId]: username}));
+        await fetchProfilePicture(sessionUserId);
+        await fetchUserData(sessionUserId);
+        
+        socketHandler.initializeSocket(
+          sessionUserId,
+          () => console.log('Connected to server'),
+          (error) => {
+            console.error('Socket connection error:', error);
+            setSocketError('Failed to connect to the server');
+          }
+        );
       } catch (error) {
-        console.error("Error fetching current user's name:", error);
+        console.error('Error initializing chat:', error);
+        setError('Failed to initialize chat. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
-    
-    fetchCurrentUserName();
+
+    initializeChat();
+
+    return () => {
+      socketHandler.disconnectSocket();
+    };
   }, [navigate]);
   
   useEffect(() => {
@@ -126,25 +154,66 @@ export const useChatLogic = () => {
     };
   
     fetchMemberNames();
-  }, [roomMembers]);
+  }, [roomMembers, userId, userNames]);
 
-  const handleSettingsClick = (event: React.MouseEvent<HTMLElement>) => {
+  const fetchProfilePicture = async (sessionUserId: string) => {
+    try {
+      const sessionId = sessionStorage.getItem('sessionId');
+      if (sessionId) {
+        const cachedProfilePicture = localStorage.getItem(`session_${sessionId}_profilePicture`);
+        if (cachedProfilePicture && cachedProfilePicture !== 'null' && cachedProfilePicture !== 'undefined') {
+          setProfilePicture(cachedProfilePicture);
+        } else {
+          const profilePic = await chatUtils.fetchUserProfilePicture(sessionUserId);
+          console.log('Fetched profile picture:', profilePic);
+          if (profilePic) {
+            setProfilePicture(profilePic);
+            localStorage.setItem(`session_${sessionId}_profilePicture`, profilePic);
+          } else {
+            console.log('No profile picture found for user');
+            setProfilePicture(null);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile picture:', error);
+      setProfilePicture(null);
+    }
+  };
+  const fetchUserData = async (sessionUserId: string) => {
+    try {
+      const [groups, username] = await Promise.all([
+        chatUtils.fetchUserGroups(sessionUserId),
+        chatUtils.fetchUserName(sessionUserId)
+      ]);
+
+      setGroups(groups);
+      setSessionItem('userGroups', JSON.stringify(groups));
+      setCurrentUserName(username);
+      setUserNames(prev => ({...prev, [sessionUserId]: username}));
+      setSessionItem('username', username);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setError('Failed to fetch user data. Please try again.');
+    }
+  };
+  const handleSettingsClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleSettingsClose = () => {
+  const handleSettingsClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
-  const handleDisconnect = () => {
+
+  const handleDisconnect = useCallback(() => {
     handleSettingsClose();
     socketHandler.disconnectSocket();
-    localStorage.removeItem('userId');
-    localStorage.removeItem('profilePicture');
+    clearSessionData();
     navigate('/login');
-  };
+  }, [handleSettingsClose, navigate]);
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = useCallback(async () => {
     handleSettingsClose();
     try {
       await chatUtils.deleteAccount(userId);
@@ -152,27 +221,36 @@ export const useChatLogic = () => {
     } catch (error) {
       setError('Failed to delete account');
     }
-  };
+  }, [userId, handleSettingsClose, handleDisconnect]);
 
-  const handleSocketErrorClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+  const handleSocketErrorClose = useCallback((event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
       return;
     }
     setSocketError(null);
-  };
+  }, []);
 
-  const handleUpdateProfilePicture = async () => {
+  const handleUpdateProfilePicture = useCallback(async () => {
     try {
       const newProfilePicture = await chatUtils.updateProfilePicture(userId, newProfilePictureUrl);
       setProfilePicture(newProfilePicture);
-      localStorage.setItem('profilePicture', newProfilePicture);
+      
+      const sessionId = sessionStorage.getItem('sessionId');
+      if (sessionId) {
+        localStorage.setItem(`session_${sessionId}_profilePicture`, newProfilePicture);
+      }
+      
+      setUserNames(prev => ({...prev, [userId]: newProfilePicture}));
       setIsProfilePictureDialogOpen(false);
+      setNewProfilePictureUrl(''); 
     } catch (error) {
-      setError('Failed to update profile picture');
+      console.error('Failed to update profile picture:', error);
+      setError('Failed to update profile picture. Please try again.');
     }
-  };
+  }, [userId, newProfilePictureUrl]);
 
-  const handleUpdateGroupPicture = async () => {
+
+  const handleUpdateGroupPicture = useCallback(async () => {
     if (!selectedRoom) return;
     try {
       const newGroupPicture = await chatUtils.updateGroupPicture(selectedRoom, newGroupPictureUrl);
@@ -183,19 +261,23 @@ export const useChatLogic = () => {
     } catch (error) {
       setError('Failed to update group picture');
     }
-  };
+  }, [selectedRoom, newGroupPictureUrl]);
 
-  const handleLeaveGroup = () => {
+  const handleLeaveGroup = useCallback(async () => {
     if (!selectedRoom) return;
-    socketHandler.leaveGroup(userId, selectedRoom);
-    
-    setGroups(prevGroups => prevGroups.filter(group => group._id !== selectedRoom));
-    setSelectedRoom(null);
-    setMessages([]);
-    setRoomMembers([]);
-  };
+    try {
+      await socketHandler.leaveGroup(userId, selectedRoom);
+      setGroups(prevGroups => prevGroups.filter(group => group._id !== selectedRoom));
+      setSelectedRoom(null);
+      setMessages([]);
+      setRoomMembers([]);
+    } catch (error) {
+      console.error('Failed to leave group:', error);
+      setError('Failed to leave group. Please try again.');
+    }
+  }, [userId, selectedRoom]);
 
-  const joinRoom = async (groupId: string) => {
+  const joinRoom = useCallback(async (groupId: string) => {
     if (!groupId) {
       setError('Invalid group selected');
       return;
@@ -218,18 +300,19 @@ export const useChatLogic = () => {
     } catch (error) {
       console.log(error, 'Failed to join room');
     }
-  };
-
-  const sendMessage = () => {
+  }, [userId, userNames]);
+  const sendMessage = useCallback(() => {
     if (inputMessage.trim() === '' || !selectedRoom) return;
     
-    socketHandler.sendMessage({
+    const messageData = {
       userId: userId,
       room: selectedRoom,
       content: inputMessage
-    });
+    };
+    
+    socketHandler.sendMessage(messageData);
     setInputMessage('');
-  };
+  }, [userId, selectedRoom, inputMessage]);
 
   const handleDifferentUserRender = async (senderId: string) => {
     if (!senderId) {
@@ -254,6 +337,7 @@ export const useChatLogic = () => {
       return "Unknown User";
     }
   };
+
 
   return {
     userId,
@@ -291,6 +375,7 @@ export const useChatLogic = () => {
     sendMessage,
     handleDifferentUserRender,
     anchorEl,
-    setAnchorEl
+    setAnchorEl,
+    isLoading
   };
 };

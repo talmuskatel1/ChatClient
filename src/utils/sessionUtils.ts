@@ -23,13 +23,6 @@ export const generateSessionId = (): string => {
     sessionStorage.removeItem('sessionId');
   };
 
-  export const getSessionItem = (key: string): string | null => {
-    const sessionId = sessionStorage.getItem('sessionId');
-    if (!sessionId) return null;
-    
-    return localStorage.getItem(`session_${sessionId}_${key}`);
-  };
-  
   export const setSessionItem = (key: string, value: string): void => {
     const sessionId = sessionStorage.getItem('sessionId');
     if (!sessionId) return;
