@@ -3,7 +3,7 @@ import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Dia
 import GroupIcon from '@mui/icons-material/Group';
 import { Group } from '../types/types';
 import AddIcon from '@mui/icons-material/Add';
-import { API } from '../services/api';
+import { useChatLogic } from '../hooks/useChatLogic';
 
 interface GroupListProps {
   groups: Group[];
@@ -18,11 +18,13 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
   const [newGroupName, setNewGroupName] = useState('');
   const [joinGroupName, setJoinGroupName] = useState('');
 
+  const { createGroup, joinGroupByName } = useChatLogic();
+
   const handleCreateGroup = async () => {
     if (newGroupName.trim() === '') return;
     try {
-      const response = await API.post('/groups/create', { name: newGroupName, creatorId: userId });
-      onGroupsUpdate([...groups, response.data]);
+      const newGroup = await createGroup(newGroupName);
+      onGroupsUpdate([...groups, newGroup]);
       setNewGroupName('');
       setIsNewGroupDialogOpen(false);
     } catch (error) {
@@ -33,8 +35,8 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
   const handleJoinGroup = async () => {
     if (joinGroupName.trim() === '') return;
     try {
-      const response = await API.post('/groups/join', { userId, groupName: joinGroupName });
-      onGroupsUpdate([...groups, response.data]);
+      const joinedGroup = await joinGroupByName(joinGroupName);
+      onGroupsUpdate([...groups, joinedGroup]);
       setJoinGroupName('');
       setIsJoinGroupDialogOpen(false);
     } catch (error) {

@@ -1,18 +1,19 @@
 import React from 'react';
 import { 
-  AppBar, Toolbar, Typography, Box, IconButton, Dialog, DialogTitle, 
-  DialogContent, DialogActions, Snackbar, Avatar, TextField, Button, 
+  AppBar, Toolbar, Typography, IconButton, Dialog, DialogTitle, 
+  DialogContent, DialogActions, Snackbar, Alert, Avatar, TextField, Button, 
   Menu, MenuItem, ListItemIcon
 } from '@mui/material';
 import { 
   Settings as SettingsIcon, 
   UploadFile as UploadFileIcon
 } from '@mui/icons-material';
-import { ChatContainer } from '../styles/StyledComponents';
 import GroupList from './GroupList';
 import ChatRoom from './ChatRoom';
 import MemberList from './MemberList';
 import { useChatLogic } from '../hooks/useChatLogic';
+import './Chat.css';
+
 const Chat: React.FC = () => {
   const {
     userId,
@@ -31,8 +32,8 @@ const Chat: React.FC = () => {
     newGroupPictureUrl,
     setNewGroupPictureUrl,
     profilePicture,
-    error,
-    setError,
+    errors,
+    setErrors,
     socketError,
     roomMembers,
     userNames,
@@ -51,10 +52,10 @@ const Chat: React.FC = () => {
   } = useChatLogic();
 
   return (
-    <ChatContainer>
+    <div className="chat-container">
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" className="chat-app-bar">
             {groups.find(g => g._id === selectedRoom)?.name || 'Chat App'}
           </Typography>
           <IconButton color="inherit" onClick={handleSettingsClick}>
@@ -72,49 +73,52 @@ const Chat: React.FC = () => {
               Update Profile Picture
             </MenuItem>
             <MenuItem onClick={handleDisconnect}>Disconnect</MenuItem>
+            <MenuItem onClick={handleDeleteAccount}>Delete Account</MenuItem>
           </Menu>
           {profilePicture && (
-            <Avatar src={profilePicture} sx={{ marginLeft: 1 }} />
+            <Avatar src={profilePicture} className="settings-icon" />
           )}
         </Toolbar>
       </AppBar>
 
-      <Box display="flex" flexGrow={1} overflow="hidden">
-        <Box width={250} borderRight={1} borderColor="divider" overflow="auto">
+      <div className="chat-content">
+        <div className="group-list">
           <GroupList
             groups={groups}
             userId={userId}
             onJoinRoom={joinRoom}
             onGroupsUpdate={setGroups}
           />
-        </Box>
+        </div>
         
         {selectedRoom ? (
           <>
-            <ChatRoom
-              messages={messages}
-              userId={userId}
-              userNames={userNames}
-              inputMessage={inputMessage}
-              onInputChange={(e) => setInputMessage(e.target.value)}
-              onSendMessage={sendMessage}
-              messageListRef={messageListRef}
-            />
-            <Box width={240} borderLeft={1} borderColor="divider" p={2} overflow="auto">
+            <div className="chat-room">
+              <ChatRoom
+                messages={messages}
+                userId={userId}
+                userNames={userNames}
+                inputMessage={inputMessage}
+                onInputChange={(e) => setInputMessage(e.target.value)}
+                onSendMessage={sendMessage}
+                messageListRef={messageListRef}
+              />
+            </div>
+            <div className="member-list">
               <MemberList
                 members={roomMembers}
                 userNames={userNames}
                 onUpdateGroupPicture={() => setIsGroupPictureDialogOpen(true)}
                 onLeaveGroup={handleLeaveGroup}
               />
-            </Box>
+            </div>
           </>
         ) : (
-          <Box display="flex" justifyContent="center" alignItems="center" flexGrow={1}>
+          <div className="no-room-selected">
             <Typography variant="h6">Select a chat room to start messaging</Typography>
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       <Dialog open={isProfilePictureDialogOpen} onClose={() => setIsProfilePictureDialogOpen(false)}>
         <DialogTitle>Update Profile Picture</DialogTitle>
@@ -152,19 +156,79 @@ const Chat: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-        message={error}
-      />
+      {/* Error Snackbars */}
+      <Snackbar open={!!errors.noGroupFound} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, noGroupFound: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, noGroupFound: null }))} severity="error">
+          {errors.noGroupFound}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.groupAlreadyExists} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, groupAlreadyExists: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, groupAlreadyExists: null }))} severity="error">
+          {errors.groupAlreadyExists}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.joinGroupFailed} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, joinGroupFailed: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, joinGroupFailed: null }))} severity="error">
+          {errors.joinGroupFailed}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.leaveGroupFailed} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, leaveGroupFailed: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, leaveGroupFailed: null }))} severity="error">
+          {errors.leaveGroupFailed}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.sendMessageFailed} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, sendMessageFailed: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, sendMessageFailed: null }))} severity="error">
+          {errors.sendMessageFailed}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.updateProfilePictureFailed} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, updateProfilePictureFailed: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, updateProfilePictureFailed: null }))} severity="error">
+          {errors.updateProfilePictureFailed}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.updateGroupPictureFailed} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, updateGroupPictureFailed: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, updateGroupPictureFailed: null }))} severity="error">
+          {errors.updateGroupPictureFailed}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar open={!!errors.genericError} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, genericError: null }))}>
+        <Alert onClose={() => setErrors(prev => ({ ...prev, genericError: null }))} severity="error">
+          {errors.genericError}
+        </Alert>
+      </Snackbar>
+
       <Snackbar
         open={!!socketError}
         autoHideDuration={6000}
         onClose={handleSocketErrorClose}
         message={socketError}
       />
-    </ChatContainer>
+      <Snackbar open={!!errors.emptyMessage} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, emptyMessage: null }))}>
+  <Alert onClose={() => setErrors(prev => ({ ...prev, emptyMessage: null }))} severity="warning">
+    {errors.emptyMessage}
+  </Alert>
+</Snackbar>
+
+<Snackbar open={!!errors.groupNameExists} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, groupNameExists: null }))}>
+  <Alert onClose={() => setErrors(prev => ({ ...prev, groupNameExists: null }))} severity="error">
+    {errors.groupNameExists}
+  </Alert>
+</Snackbar>
+
+<Snackbar open={!!errors.joinNonExistentGroup} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, joinNonExistentGroup: null }))}>
+  <Alert onClose={() => setErrors(prev => ({ ...prev, joinNonExistentGroup: null }))} severity="error">
+    {errors.joinNonExistentGroup}
+  </Alert>
+</Snackbar>
+    </div>
   );
 };
 

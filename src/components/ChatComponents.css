@@ -1,0 +1,45 @@
+/* ChatComponents.css */
+.message-list {
+    flex-grow: 1;
+    overflow: auto;
+    padding: 16px;
+  }
+  
+  .message-container {
+    display: flex;
+    margin-bottom: 8px;
+  }
+  
+  .message-container.current-user {
+    justify-content: flex-end;
+  }
+  
+  .message-bubble {
+    padding: 8px;
+    max-width: 70%;
+    word-break: break-word;
+    border-radius: 4px;
+  }
+  
+  .message-bubble.current-user {
+    background-color: #1976d2;
+    color: white;
+  }
+  
+  .message-bubble.other-user {
+    background-color: #f5f5f5;
+    color: rgba(0, 0, 0, 0.87);
+  }
+  
+  .input-area {
+    padding: 16px;
+    background-color: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+  }
+  
+  .scrollable-message-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Grid, TextField, Button } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { Message } from '../types/types';
-import { ScrollableMessageArea, MessageList, MessageContainer, MessageBubble, InputArea } from '../styles/StyledComponents';
+import './ChatComponents.css';
 
 interface ChatRoomProps {
   messages: Message[];
@@ -17,23 +17,23 @@ interface ChatRoomProps {
 const ChatRoom: React.FC<ChatRoomProps> = ({ messages, userId, userNames, inputMessage, onInputChange, onSendMessage, messageListRef }) => {
   return (
     <Box flexGrow={1} display="flex" flexDirection="column" overflow="hidden">
-      <ScrollableMessageArea>
-        <MessageList ref={messageListRef}>
+      <div className="scrollable-message-area">
+        <ul className="message-list" ref={messageListRef}>
           {messages.map((message) => (
-            <MessageContainer key={message._id} isCurrentUser={message.senderId === userId}>
-              <MessageBubble isCurrentUser={message.senderId === userId}>
+            <li key={message._id} className={`message-container ${message.senderId === userId ? 'current-user' : ''}`}>
+              <div className={`message-bubble ${message.senderId === userId ? 'current-user' : 'other-user'}`}>
                 <Typography variant="body2" color="textSecondary">
                   {message.senderId === userId 
                     ? 'You' 
                     : (message.senderId ? (userNames[message.senderId] || `Unknown User (${message.senderId})`) : 'Unknown User')}
                 </Typography>
                 <Typography variant="body1">{message.content}</Typography>
-              </MessageBubble>
-            </MessageContainer>
+              </div>
+            </li>
           ))}
-        </MessageList>
-      </ScrollableMessageArea>
-      <InputArea>
+        </ul>
+      </div>
+      <div className="input-area">
         <Grid container spacing={2}>
           <Grid item xs={10}>
             <TextField
@@ -52,13 +52,13 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ messages, userId, userNames, inputM
               color="primary"
               endIcon={<SendIcon />}
               onClick={onSendMessage}
-              sx={{ height: '100%' }}
+              style={{ height: '100%' }}
             >
               Send
             </Button>
           </Grid>
         </Grid>
-      </InputArea>
+      </div>
     </Box>
   );
 };

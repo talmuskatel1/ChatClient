@@ -79,3 +79,23 @@ export const fetchRoomMessages = async (roomId: string): Promise<Message[]> => {
     throw error;
   }
 };
+
+export const createGroup = async (userId: string, groupName: string): Promise<Group> => {
+  try {
+    const response = await API.post('/groups/create', { name: groupName, creatorId: userId });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to create group:', error);
+    throw error;
+  }
+};
+
+export const joinGroupByName = async (userId: string, groupName: string): Promise<Group> => {
+  try {
+    const response = await API.post('/groups/join', { userId, groupName });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to join group:', error);
+    throw error;
+  }
+};
