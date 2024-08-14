@@ -1,24 +1,37 @@
-import React from 'react';
-import { Box, Typography, List, ListItem, ListItemText, Button } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, List, ListItem, ListItemText, Button, Switch, FormControlLabel } from '@mui/material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import MakePrivateDialog from './MakePrivateDialog';
 
 interface MemberListProps {
   members: string[];
   userNames: { [key: string]: string | { username: string; profilePicture?: string } };
   onUpdateGroupPicture: () => void;
   onLeaveGroup: () => void;
+  onToggleGroupPrivacy: () => void;
+  isGroupPrivate: boolean;
+  confirmMakePrivate: ()=> void;
 }
 
-const MemberList: React.FC<MemberListProps> = ({ members, userNames, onUpdateGroupPicture, onLeaveGroup }) => {
-  const getUserName = (userId: string) => {
-    const userData = userNames[userId];
-    if (typeof userData === 'string') {
-      return userData;
-    } else if (userData && 'username' in userData) {
-      return userData.username;
+const MemberList: React.FC<MemberListProps> = ({ 
+  members, 
+  userNames, 
+  onUpdateGroupPicture, 
+  onLeaveGroup,
+  onToggleGroupPrivacy,
+  isGroupPrivate,
+  confirmMakePrivate
+}) => {
+  const [isPrivateDialogOpen, setIsPrivateDialogOpen] = useState(false);
+
+  const handlePrivacyToggle = () => {
+    if (!isGroupPrivate) {
+      setIsPrivateDialogOpen(true);
+    } else {
+      onToggleGroupPrivacy();
+      setIsPrivateDialogOpen(false);
     }
-    return `Unknown User (${userId})`;
   };
 
   return (
@@ -27,7 +40,7 @@ const MemberList: React.FC<MemberListProps> = ({ members, userNames, onUpdateGro
       <List>
         {members.map((memberId) => (
           <ListItem key={memberId}>
-            <ListItemText primary={getUserName(memberId)} />
+            <ListItemText primary={typeof userNames[memberId] === 'string' ? userNames[memberId] : userNames[memberId]?.username} />
           </ListItem>
         ))}
       </List>
@@ -41,16 +54,32 @@ const MemberList: React.FC<MemberListProps> = ({ members, userNames, onUpdateGro
       >
         Update Group Picture
       </Button>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={isGroupPrivate}
+            onChange={handlePrivacyToggle}
+            color="primary"
+          />
+        }
+        label={isGroupPrivate ? "Private Group" : "Public Group"}
+        sx={{ mt: 2, width: '100%', justifyContent: 'space-between' }}
+      />
       <Button
         fullWidth
         variant="outlined"
-        color="secondary"
+        color="error"
         startIcon={<ExitToAppIcon />}
         onClick={onLeaveGroup}
         sx={{ mt: 2 }}
       >
         Leave Group
       </Button>
+      <MakePrivateDialog 
+        open={isPrivateDialogOpen}
+        onClose={() => setIsPrivateDialogOpen(false)}
+        onConfirm={confirmMakePrivate}
+      />
     </Box>
   );
 };

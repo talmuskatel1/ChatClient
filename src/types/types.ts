@@ -11,6 +11,7 @@ export type Message = {
     name: string;
     members: string[];
     groupPicture?: string | null;
+    isPrivate: Boolean;
   };
   
   export type User = {

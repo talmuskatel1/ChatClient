@@ -14,7 +14,8 @@ export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
       _id: group._id,
       name: group.name,
       members: group.members,
-      groupPicture: group.groupPicture || null
+      groupPicture: group.groupPicture || null,
+      isPrivate: group.isPrivate
     }));
   } catch (error) {
     console.error('Failed to fetch user groups:', error);
@@ -84,4 +85,25 @@ export const createGroup = async (userId: string, groupName: string): Promise<Gr
 export const joinGroupByName = async (userId: string, groupName: string): Promise<Group> => {
   const response = await API.post('/groups/join', { userId, groupName });
   return response.data;
+};
+
+
+export const makeGroupPrivate = async (groupId: string): Promise<Group> => {
+  try {
+    const response = await API.put(`/groups/${groupId}/make-private`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to make group private:', error);
+    throw error;
+  }
+};
+
+export const makeGroupPublic = async (groupId: string): Promise<Group> => {
+  try {
+    const response = await API.put(`/groups/${groupId}/make-public`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to make group public:', error);
+    throw error;
+  }
 };
