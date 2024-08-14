@@ -175,12 +175,15 @@ export const useChatLogic = () => {
     };
   }, [navigate]);
 
-
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (messageListRef.current) {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     const fetchMissingUserNames = async () => {
@@ -567,6 +570,6 @@ const fetchUserGroups = useCallback(async (userId: string) => {
     isLoading,
     errors,
     setErrors,
-    handleFileUpload,
+    handleFileUpload
   };
 };

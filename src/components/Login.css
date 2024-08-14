@@ -1,0 +1,19 @@
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .login-paper {
+    padding: 32px;
+    width: 300px;
+  }
+  
+  .login-button-container {
+    margin-top: 16px;
+  }
+  
+  .signup-link-container {
+    margin-top: 8px;
+  }

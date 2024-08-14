@@ -1,0 +1,19 @@
+.signup-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .signup-paper {
+    padding: 32px;
+    width: 300px;
+  }
+  
+  .signup-button-container {
+    margin-top: 16px;
+  }
+  
+  .login-link-container {
+    margin-top: 8px;
+  }

@@ -4,13 +4,11 @@ import { Group, Message } from '../types/types';
 export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
   try {
     const response = await API.get(`/users/${userId}/groups`);
-    console.log('API response for user groups:', response.data);
     
     const groupPromises = response.data.map((groupId: string) => API.get(`/groups/${groupId}`));
     const groupResponses = await Promise.all(groupPromises);
     
     const groups = groupResponses.map(response => response.data);
-    console.log('Fetched full group details:', groups);
     
     return groups.map((group: any): Group => ({
       _id: group._id,
@@ -35,48 +33,32 @@ export const fetchUserProfilePicture = async (userId: string): Promise<string | 
   }
 };
 
-
 export const updateProfilePicture = async (userId: string, formData: FormData): Promise<{ profilePicture: string }> => {
-  try {
-    const response = await API.put(`/users/${userId}/profile-picture`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    if (response.data && response.data.profilePicture) {
-      return { profilePicture: response.data.profilePicture };
+  const response = await API.put(`/users/${userId}/profile-picture`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
     }
-    throw new Error('Failed to update profile picture');
-  } catch (error) {
-    console.error('Failed to update profile picture:', error);
-    throw error;
+  });
+  if (response.data && response.data.profilePicture) {
+    return { profilePicture: response.data.profilePicture };
   }
+  throw new Error('Failed to update profile picture');
 };
 
 export const updateGroupPicture = async (groupId: string, formData: FormData): Promise<{ groupPicture: string }> => {
-  try {
-    const response = await API.put(`/groups/${groupId}/group-picture`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    if (response.data && response.data.groupPicture) {
-      return { groupPicture: response.data.groupPicture };
+  const response = await API.put(`/groups/${groupId}/group-picture`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
     }
-    throw new Error('Failed to update group picture');
-  } catch (error) {
-    console.error('Failed to update group picture:', error);
-    throw error;
+  });
+  if (response.data && response.data.groupPicture) {
+    return { groupPicture: response.data.groupPicture };
   }
+  throw new Error('Failed to update group picture');
 };
 
 export const deleteAccount = async (userId: string): Promise<void> => {
-  try {
-    await API.delete(`/users/${userId}`);
-  } catch (error) {
-    console.error('Failed to delete account:', error);
-    throw error;
-  }
+  await API.delete(`/users/${userId}`);
 };
 
 export const fetchUserName = async (userId: string): Promise<string> => {
@@ -90,32 +72,16 @@ export const fetchUserName = async (userId: string): Promise<string> => {
 };
 
 export const fetchRoomMessages = async (roomId: string): Promise<Message[]> => {
-  try {
-    const response = await API.get(`/messages/room/${roomId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch room messages:', error);
-    throw error;
-  }
+  const response = await API.get(`/messages/room/${roomId}`);
+  return response.data;
 };
 
 export const createGroup = async (userId: string, groupName: string): Promise<Group> => {
-  try {
-    const response = await API.post('/groups/create', { name: groupName, creatorId: userId });
-    return response.data;
-  } catch (error) {
-    console.error('Failed to create group:', error);
-    throw error;
-  }
+  const response = await API.post('/groups/create', { name: groupName, creatorId: userId });
+  return response.data;
 };
 
 export const joinGroupByName = async (userId: string, groupName: string): Promise<Group> => {
-  try {
-    const response = await API.post('/groups/join', { userId, groupName });
-    return response.data;
-  } catch (error) {
-    console.error('Failed to join group:', error);
-    throw error;
-  }
+  const response = await API.post('/groups/join', { userId, groupName });
+  return response.data;
 };
-

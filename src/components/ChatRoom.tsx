@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography, Grid, TextField, Button } from '@mui/material';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import { Typography, Grid, TextField, Button } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { Message } from '../types/types';
 import './ChatRoom.css';
@@ -20,9 +20,11 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   userNames, 
   inputMessage, 
   onInputChange, 
-  onSendMessage, 
-  messageListRef 
+  onSendMessage,
+  messageListRef
 }) => {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
   const getUserName = (senderId: string) => {
     const userNameData = userNames[senderId];
     if (typeof userNameData === 'string') {
@@ -37,6 +39,24 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  useLayoutEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (messageListRef.current) {
+      const observer = new MutationObserver(() => {
+        if (bottomRef.current) {
+          bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+      observer.observe(messageListRef.current, { childList: true, subtree: true });
+      return () => observer.disconnect();
+    }
+  }, []);
+
   return (
     <div className="chat-room">
       <div className="message-list-container">
@@ -45,7 +65,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
             <li key={message._id} className={`message-container ${message.senderId === userId ? 'sent' : 'received'}`}>
               <div className="message-bubble">
                 <Typography variant="body2" className="sender-name">
-                  {message.senderId === userId ? 'You' : getUserName(message.senderId)}
+                  {getUserName(message.senderId)}
                 </Typography>
                 <Typography variant="body1" className="message-content">
                   {message.content}
@@ -56,6 +76,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
               </div>
             </li>
           ))}
+          <div ref={bottomRef} />
         </ul>
       </div>
       <div className="input-area">
