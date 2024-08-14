@@ -3,7 +3,8 @@ import {
   AppBar, Toolbar, Typography, IconButton, Dialog, DialogTitle, 
   DialogContent, DialogActions, Snackbar, Alert, Avatar, TextField, Button, 
   Menu, MenuItem, ListItemIcon,
-  Box
+  Box,
+  Switch
 } from '@mui/material';
 import { 
   Settings as SettingsIcon, 
@@ -14,6 +15,7 @@ import ChatRoom from './ChatRoom';
 import MemberList from './MemberList';
 import { useChatLogic } from '../hooks/useChatLogic';
 import './Chat.css';
+import { makeGroupPrivate } from '../services/chatUtils';
 
 const Chat: React.FC = () => {
   const {
@@ -47,7 +49,10 @@ const Chat: React.FC = () => {
     sendMessage,
     anchorEl,
     handleFileUpload,
-  } = useChatLogic();
+    isGroupPrivate,
+    toggleGroupPrivacy,
+    confirmMakePrivate
+    } = useChatLogic();
 
 
   return (
@@ -102,15 +107,15 @@ const Chat: React.FC = () => {
         {selectedRoom ? (
           <>
             <Box flexGrow={1} display="flex" flexDirection="column" overflow="hidden">
-            <ChatRoom
-      messages={messages}
-      userId={userId}
-      userNames={userNames}
-      inputMessage={inputMessage}
-      onInputChange={(e) => setInputMessage(e.target.value)}
-      onSendMessage={sendMessage}
-      messageListRef={messageListRef}
-    />
+              <ChatRoom
+                messages={messages}
+                userId={userId}
+                userNames={userNames}
+                inputMessage={inputMessage}
+                onInputChange={(e) => setInputMessage(e.target.value)}
+                onSendMessage={sendMessage}
+                messageListRef={messageListRef}
+              />
             </Box>
             <Box width={240} borderLeft={1} borderColor="divider" p={2} overflow="auto">
               <MemberList
@@ -118,6 +123,9 @@ const Chat: React.FC = () => {
                 userNames={userNames}
                 onUpdateGroupPicture={() => setIsGroupPictureDialogOpen(true)}
                 onLeaveGroup={handleLeaveGroup}
+                onToggleGroupPrivacy={toggleGroupPrivacy}
+                isGroupPrivate={isGroupPrivate}
+                confirmMakePrivate={confirmMakePrivate}
               />
             </Box>
           </>

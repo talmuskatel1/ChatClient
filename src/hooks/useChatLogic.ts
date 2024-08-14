@@ -35,7 +35,9 @@ export const useChatLogic = () => {
   const [isLoading, setIsLoading] = useState(true);
   const messageListRef = useRef<HTMLUListElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isGroupPrivate, setIsGroupPrivate] = useState(false);
   const navigate = useNavigate();
+  const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
 
   const [errors, setErrors] = useState<{
     noGroupFound: string | null;
@@ -385,6 +387,10 @@ export const useChatLogic = () => {
         }));
         return;
       }
+      const group = groups.find(g => g._id === groupId);
+    if (group) {
+      setIsGroupPrivate(Boolean(group.isPrivate));
+    }
       try {
         socketHandler.joinRoom(userId, groupId);
         socketHandler.onJoinSuccess(async ({ room, members }) => {
@@ -408,7 +414,7 @@ export const useChatLogic = () => {
         }));
       }
     },
-    [userId, userNames]
+    [userId, userNames,groups]
   );
 
   const sendMessage = useCallback(() => {
@@ -528,6 +534,89 @@ const fetchUserGroups = useCallback(async (userId: string) => {
     setError("Failed to fetch user groups. Please try again.");
   }
 }, [setGroups, setError]);
+
+
+const makeGroupPrivate = useCallback(async () => {
+  if (!selectedRoom) return;
+  
+  try {
+    await chatUtils.makeGroupPrivate(selectedRoom);
+    setIsGroupPrivate(true);
+    setGroups(prevGroups =>
+      prevGroups.map(group =>
+        group._id === selectedRoom
+          ? { ...group, isPrivate: true }
+          : group
+      )
+    );
+  } catch (error) {
+    console.error('Failed to make group private:', error);
+    setErrors(prev => ({
+      ...prev,
+      genericError: 'Failed to make group private. Please try again.',
+    }));
+  }
+}, [selectedRoom, setGroups, setErrors]);
+
+useEffect(() => {
+  if (selectedRoom) {
+    const currentGroup = groups.find(group => group._id === selectedRoom);
+    setIsGroupPrivate(!!currentGroup?.isPrivate || false);
+  }
+}, [selectedRoom, groups]);
+
+const toggleGroupPrivacy = useCallback(async () => {
+  if (!selectedRoom) return;
+  
+  try {
+    if (isGroupPrivate) {
+      await chatUtils.makeGroupPublic(selectedRoom);
+      setIsGroupPrivate(false);
+    } else {
+      setIsPrivacyDialogOpen(true); 
+    }
+    setGroups(prevGroups =>
+      prevGroups.map(group =>
+        group._id === selectedRoom
+          ? { ...group, isPrivate: !isGroupPrivate }
+          : group
+      )
+    );
+  } catch (error) {
+    const action = isGroupPrivate ? 'make group public' : 'make group private';
+    console.error(`Failed to ${action}:`, error);
+    setErrors(prev => ({
+      ...prev,
+      genericError: `Failed to ${action}. Please try again.`,
+    }));
+  }
+}, [selectedRoom, isGroupPrivate, setGroups, setErrors]);
+
+const confirmMakePrivate = useCallback(async () => {
+  if (!selectedRoom) return;
+  
+  try {
+    await chatUtils.makeGroupPrivate(selectedRoom);
+    setIsGroupPrivate(true);
+    setGroups(prevGroups =>
+      prevGroups.map(group =>
+        group._id === selectedRoom
+          ? { ...group, isPrivate: true }
+          : group
+      )
+    );
+  } catch (error) {
+    console.error('Failed to make group private:', error);
+    setErrors(prev => ({
+      ...prev,
+      genericError: 'Failed to make group private. Please try again.',
+    }));
+  } finally {
+    setIsPrivacyDialogOpen(false);
+  }
+}, [selectedRoom, setGroups, setErrors]);
+
+
   return {
     createGroup,
     joinGroupByName,
@@ -570,6 +659,12 @@ const fetchUserGroups = useCallback(async (userId: string) => {
     isLoading,
     errors,
     setErrors,
-    handleFileUpload
+    handleFileUpload,
+    isGroupPrivate,
+    toggleGroupPrivacy,
+    isPrivacyDialogOpen,
+    setIsPrivacyDialogOpen,
+    confirmMakePrivate,
+    makeGroupPrivate
   };
 };
