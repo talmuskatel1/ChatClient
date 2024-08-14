@@ -3,12 +3,21 @@ import { Group, Message } from '../types/types';
 
 export const fetchUserGroups = async (userId: string): Promise<Group[]> => {
   try {
-    const groupIdsResponse = await API.get(`/users/${userId}/groups`);
-    const groupPromises = groupIdsResponse.data.map((groupId: string) => 
-      API.get(`/groups/${groupId}`)
-    );
+    const response = await API.get(`/users/${userId}/groups`);
+    console.log('API response for user groups:', response.data);
+    
+    const groupPromises = response.data.map((groupId: string) => API.get(`/groups/${groupId}`));
     const groupResponses = await Promise.all(groupPromises);
-    return groupResponses.map(response => response.data);
+    
+    const groups = groupResponses.map(response => response.data);
+    console.log('Fetched full group details:', groups);
+    
+    return groups.map((group: any): Group => ({
+      _id: group._id,
+      name: group.name,
+      members: group.members,
+      groupPicture: group.groupPicture || null
+    }));
   } catch (error) {
     console.error('Failed to fetch user groups:', error);
     throw error;
@@ -25,11 +34,17 @@ export const fetchUserProfilePicture = async (userId: string): Promise<string | 
     return null;
   }
 };
-export const updateProfilePicture = async (userId: string, newProfilePictureUrl: string): Promise<string> => {
+
+
+export const updateProfilePicture = async (userId: string, formData: FormData): Promise<{ profilePicture: string }> => {
   try {
-    const response = await API.put(`/users/${userId}/profile-picture`, { profilePictureUrl: newProfilePictureUrl });
+    const response = await API.put(`/users/${userId}/profile-picture`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     if (response.data && response.data.profilePicture) {
-      return response.data.profilePicture;
+      return { profilePicture: response.data.profilePicture };
     }
     throw new Error('Failed to update profile picture');
   } catch (error) {
@@ -38,11 +53,15 @@ export const updateProfilePicture = async (userId: string, newProfilePictureUrl:
   }
 };
 
-export const updateGroupPicture = async (groupId: string, newGroupPictureUrl: string): Promise<string> => {
+export const updateGroupPicture = async (groupId: string, formData: FormData): Promise<{ groupPicture: string }> => {
   try {
-    const response = await API.put(`/groups/${groupId}/group-picture`, { groupPictureUrl: newGroupPictureUrl });
+    const response = await API.put(`/groups/${groupId}/group-picture`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     if (response.data && response.data.groupPicture) {
-      return response.data.groupPicture;
+      return { groupPicture: response.data.groupPicture };
     }
     throw new Error('Failed to update group picture');
   } catch (error) {
@@ -99,3 +118,4 @@ export const joinGroupByName = async (userId: string, groupName: string): Promis
     throw error;
   }
 };
+

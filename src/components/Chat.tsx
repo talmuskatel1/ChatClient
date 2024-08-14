@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   AppBar, Toolbar, Typography, IconButton, Dialog, DialogTitle, 
   DialogContent, DialogActions, Snackbar, Alert, Avatar, TextField, Button, 
-  Menu, MenuItem, ListItemIcon
+  Menu, MenuItem, ListItemIcon,
+  Box
 } from '@mui/material';
 import { 
   Settings as SettingsIcon, 
@@ -27,10 +28,6 @@ const Chat: React.FC = () => {
     setIsProfilePictureDialogOpen,
     isGroupPictureDialogOpen,
     setIsGroupPictureDialogOpen,
-    newProfilePictureUrl,
-    setNewProfilePictureUrl,
-    newGroupPictureUrl,
-    setNewGroupPictureUrl,
     profilePicture,
     errors,
     setErrors,
@@ -49,7 +46,9 @@ const Chat: React.FC = () => {
     joinRoom,
     sendMessage,
     anchorEl,
+    handleFileUpload
   } = useChatLogic();
+
 
   return (
     <div className="chat-container">
@@ -75,25 +74,34 @@ const Chat: React.FC = () => {
             <MenuItem onClick={handleDisconnect}>Disconnect</MenuItem>
             <MenuItem onClick={handleDeleteAccount}>Delete Account</MenuItem>
           </Menu>
-          {profilePicture && (
-            <Avatar src={profilePicture} className="settings-icon" />
-          )}
+          <Avatar 
+  src={profilePicture || undefined} 
+  className="settings-icon"
+  sx={{ bgcolor: profilePicture ? undefined : 'primary.main' }}
+>
+  {!profilePicture && (
+    (typeof userNames[userId] === 'string' 
+      ? userNames[userId] 
+      : userNames[userId]?.username
+    )?.charAt(0).toUpperCase() || 'U'
+  )}
+</Avatar>
         </Toolbar>
       </AppBar>
 
-      <div className="chat-content">
-        <div className="group-list">
+      <Box display="flex" flexGrow={1} overflow="hidden">
+        <Box width={250} borderRight={1} borderColor="divider" overflow="auto">
           <GroupList
             groups={groups}
             userId={userId}
             onJoinRoom={joinRoom}
             onGroupsUpdate={setGroups}
           />
-        </div>
+        </Box>
         
         {selectedRoom ? (
           <>
-            <div className="chat-room">
+            <Box flexGrow={1} display="flex" flexDirection="column" overflow="hidden">
               <ChatRoom
                 messages={messages}
                 userId={userId}
@@ -103,60 +111,71 @@ const Chat: React.FC = () => {
                 onSendMessage={sendMessage}
                 messageListRef={messageListRef}
               />
-            </div>
-            <div className="member-list">
+            </Box>
+            <Box width={240} borderLeft={1} borderColor="divider" p={2} overflow="auto">
               <MemberList
                 members={roomMembers}
                 userNames={userNames}
                 onUpdateGroupPicture={() => setIsGroupPictureDialogOpen(true)}
                 onLeaveGroup={handleLeaveGroup}
               />
-            </div>
+            </Box>
           </>
         ) : (
-          <div className="no-room-selected">
+          <Box display="flex" justifyContent="center" alignItems="center" flexGrow={1}>
             <Typography variant="h6">Select a chat room to start messaging</Typography>
-          </div>
+          </Box>
         )}
-      </div>
-
+      </Box>
       <Dialog open={isProfilePictureDialogOpen} onClose={() => setIsProfilePictureDialogOpen(false)}>
-        <DialogTitle>Update Profile Picture</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Profile Picture URL"
-            fullWidth
-            value={newProfilePictureUrl}
-            onChange={(e) => setNewProfilePictureUrl(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsProfilePictureDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdateProfilePicture}>Update</Button>
-        </DialogActions>
-      </Dialog>
+  <DialogTitle>Update Profile Picture</DialogTitle>
+  <DialogContent>
+    <input
+      accept="image/*"
+      style={{ display: 'none' }}
+      id="profile-picture-upload"
+      type="file"
+      onChange={(e) => handleFileUpload(e, 'profile')}
+    />
+    <label htmlFor="profile-picture-upload">
+      <Button variant="contained" component="span">
+        Choose File
+      </Button>
+    </label>
+    {profilePicture && (
+      <Box mt={2}>
+        <Typography variant="body2">Current Profile Picture:</Typography>
+        <Avatar src={profilePicture} sx={{ width: 100, height: 100, mt: 1 }} />
+      </Box>
+    )}
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setIsProfilePictureDialogOpen(false)}>Close</Button>
+    <Button onClick={handleUpdateProfilePicture}>Update</Button>
+  </DialogActions>
+</Dialog>
 
-      <Dialog open={isGroupPictureDialogOpen} onClose={() => setIsGroupPictureDialogOpen(false)}>
-        <DialogTitle>Update Group Picture</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Group Picture URL"
-            fullWidth
-            value={newGroupPictureUrl}
-            onChange={(e) => setNewGroupPictureUrl(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsGroupPictureDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdateGroupPicture}>Update</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Error Snackbars */}
+<Dialog open={isGroupPictureDialogOpen} onClose={() => setIsGroupPictureDialogOpen(false)}>
+  <DialogTitle>Update Group Picture</DialogTitle>
+  <DialogContent>
+    <input
+      accept="image/*"
+      style={{ display: 'none' }}
+      id="group-picture-upload"
+      type="file"
+      onChange={(e) => handleFileUpload(e, 'group')}
+    />
+    <label htmlFor="group-picture-upload">
+      <Button variant="contained" component="span">
+        Choose File
+      </Button>
+    </label>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setIsGroupPictureDialogOpen(false)}>Cancel</Button>
+    <Button onClick={handleUpdateGroupPicture}>Update</Button>
+  </DialogActions>
+</Dialog>
       <Snackbar open={!!errors.noGroupFound} autoHideDuration={6000} onClose={() => setErrors(prev => ({ ...prev, noGroupFound: null }))}>
         <Alert onClose={() => setErrors(prev => ({ ...prev, noGroupFound: null }))} severity="error">
           {errors.noGroupFound}

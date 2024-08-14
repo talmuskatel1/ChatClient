@@ -3,7 +3,6 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  overflow: hidden;
 }
 
 .chat-app-bar {
@@ -14,30 +13,22 @@
   margin-left: 8px;
 }
 
+/* This style might not be necessary if you're using Box components for layout */
 .chat-content {
   display: flex;
   flex-grow: 1;
   overflow: hidden;
 }
 
-.group-list {
-  width: 250px;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-  overflow: auto;
+/* Additional styles for consistent sizing and scrolling */
+.group-list, .member-list {
+  overflow-y: auto;
 }
 
 .chat-room {
-  flex-grow: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.member-list {
-  width: 240px;
-  border-left: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 16px;
-  overflow: auto;
 }
 
 .no-room-selected {

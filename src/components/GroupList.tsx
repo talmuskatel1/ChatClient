@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
-import { Group } from '../types/types';
 import AddIcon from '@mui/icons-material/Add';
+import { Group } from '../types/types';
 import { useChatLogic } from '../hooks/useChatLogic';
+import { API_URL } from '../variables/Variables';
+import { setSessionItem } from '../utils/sessionUtils';
 
 interface GroupListProps {
   groups: Group[];
@@ -24,6 +26,11 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
     if (newGroupName.trim() === '') return;
     try {
       const newGroup = await createGroup(newGroupName);
+      if (newGroup.groupPicture) {
+        const fullGroupPictureUrl = `${API_URL}/${newGroup.groupPicture}`;
+        setSessionItem(`group_${newGroup._id}_picture`, fullGroupPictureUrl);
+        newGroup.groupPicture = fullGroupPictureUrl;
+      }
       onGroupsUpdate([...groups, newGroup]);
       setNewGroupName('');
       setIsNewGroupDialogOpen(false);
@@ -36,6 +43,11 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
     if (joinGroupName.trim() === '') return;
     try {
       const joinedGroup = await joinGroupByName(joinGroupName);
+      if (joinedGroup.groupPicture) {
+        const fullGroupPictureUrl = `${API_URL}/${joinedGroup.groupPicture}`;
+        setSessionItem(`group_${joinedGroup._id}_picture`, fullGroupPictureUrl);
+        joinedGroup.groupPicture = fullGroupPictureUrl;
+      }
       onGroupsUpdate([...groups, joinedGroup]);
       setJoinGroupName('');
       setIsJoinGroupDialogOpen(false);
@@ -49,26 +61,39 @@ const GroupList: React.FC<GroupListProps> = ({ groups, userId, onJoinRoom, onGro
       <List>
         <ListItem disablePadding>
           <ListItemButton onClick={() => setIsNewGroupDialogOpen(true)}>
-            <ListItemIcon><AddIcon /></ListItemIcon>
+            <ListItemIcon>
+              <AddIcon />
+            </ListItemIcon>
             <ListItemText primary="Create New Group" />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
           <ListItemButton onClick={() => setIsJoinGroupDialogOpen(true)}>
-            <ListItemIcon><GroupIcon /></ListItemIcon>
+            <ListItemIcon>
+              <GroupIcon />
+            </ListItemIcon>
             <ListItemText primary="Join Group" />
           </ListItemButton>
         </ListItem>
-        {groups.map((group) => (
-          <ListItem key={group._id} disablePadding>
-            <ListItemButton onClick={() => group._id && onJoinRoom(group._id)}>
-              <ListItemIcon>
-                <Avatar src={group.groupPicture} />
-              </ListItemIcon>
-              <ListItemText primary={group.name || `Unnamed Group (ID: ${group._id})`} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {groups.map((group) => {
+          const fullGroupPictureUrl = group.groupPicture && !group.groupPicture.startsWith('http')
+            ? `${API_URL}/${group.groupPicture.replace(/\\/g, '/')}`
+            : group.groupPicture;
+          return (
+            <ListItem key={group._id} disablePadding>
+              <ListItemButton onClick={() => group._id && onJoinRoom(group._id)}>
+                <ListItemIcon>
+                  {fullGroupPictureUrl ? (
+                    <Avatar src={fullGroupPictureUrl} />
+                  ) : (
+                    <GroupIcon />
+                  )}
+                </ListItemIcon>
+                <ListItemText primary={group.name || `Unnamed Group (ID: ${group._id})`} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
       <Dialog open={isNewGroupDialogOpen} onClose={() => setIsNewGroupDialogOpen(false)}>
