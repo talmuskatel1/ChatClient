@@ -7,15 +7,19 @@ import {
   getSessionUserId,
   setSessionItem,
   clearSessionData,
+  getSessionItem,
+  removeSessionItem,
 } from "../utils/sessionUtils";
-
+import { API_URL } from "../variables/Variables";
 export const useChatLogic = () => {
   const [userId, setUserId] = useState("");
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [isProfilePictureDialogOpen, setIsProfilePictureDialogOpen] =
+  const [groups, setGroups] = useState<Group[]>(() => {
+    const storedGroups = getSessionItem('groups');
+    return storedGroups || [];
+  });  const [isProfilePictureDialogOpen, setIsProfilePictureDialogOpen] =
     useState(false);
   const [isGroupPictureDialogOpen, setIsGroupPictureDialogOpen] =
     useState(false);
@@ -26,10 +30,11 @@ export const useChatLogic = () => {
   const [error, setError] = useState<string | null>(null);
   const [socketError, setSocketError] = useState<string | null>(null);
   const [roomMembers, setRoomMembers] = useState<string[]>([]);
-  const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
+  const [userNames, setUserNames] = useState<{ [key: string]: string | { username: string; profilePicture?: string } }>({});
   const [currentUserName, setCurrentUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const messageListRef = useRef<HTMLUListElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const navigate = useNavigate();
 
   const [errors, setErrors] = useState<{
@@ -144,6 +149,7 @@ export const useChatLogic = () => {
 
       try {
         await fetchProfilePicture(sessionUserId);
+        await fetchUserGroups(sessionUserId);
         await fetchUserData(sessionUserId);
 
         socketHandler.initializeSocket(
@@ -168,6 +174,7 @@ export const useChatLogic = () => {
       socketHandler.disconnectSocket();
     };
   }, [navigate]);
+
 
   useEffect(() => {
     if (messageListRef.current) {
@@ -207,36 +214,21 @@ export const useChatLogic = () => {
 
   const fetchProfilePicture = async (sessionUserId: string) => {
     try {
-      const sessionId = sessionStorage.getItem("sessionId");
-      if (sessionId) {
-        const cachedProfilePicture = localStorage.getItem(
-          `session_${sessionId}_profilePicture`
-        );
-        if (
-          cachedProfilePicture &&
-          cachedProfilePicture !== "null" &&
-          cachedProfilePicture !== "undefined"
-        ) {
-          setProfilePicture(cachedProfilePicture);
+      const cachedProfilePicture = getSessionItem('profilePicture');
+      if (cachedProfilePicture && cachedProfilePicture.startsWith('http')) {
+        setProfilePicture(cachedProfilePicture);
+      } else {
+        const profilePic = await chatUtils.fetchUserProfilePicture(sessionUserId);
+        if (profilePic) {
+          const fullProfilePicUrl = `${API_URL}/${profilePic.replace(/\\/g, '/')}`;
+          setProfilePicture(fullProfilePicUrl);
+          setSessionItem('profilePicture', fullProfilePicUrl);
         } else {
-          const profilePic = await chatUtils.fetchUserProfilePicture(
-            sessionUserId
-          );
-          console.log("Fetched profile picture:", profilePic);
-          if (profilePic) {
-            setProfilePicture(profilePic);
-            localStorage.setItem(
-              `session_${sessionId}_profilePicture`,
-              profilePic
-            );
-          } else {
-            console.log("No profile picture found for user");
-            setProfilePicture(null);
-          }
+          setProfilePicture(null);
+          removeSessionItem('profilePicture');
         }
       }
     } catch (error) {
-      console.error("Error fetching profile picture:", error);
       setProfilePicture(null);
     }
   };
@@ -296,58 +288,72 @@ export const useChatLogic = () => {
   );
 
   const handleUpdateProfilePicture = useCallback(async () => {
+    if (!selectedFile) {
+      setErrors(prev => ({ ...prev, updateProfilePictureFailed: 'No file selected' }));
+      return;
+    }
+  
     try {
-      const newProfilePicture = await chatUtils.updateProfilePicture(
-        userId,
-        newProfilePictureUrl
-      );
-      setProfilePicture(newProfilePicture);
-
-      const sessionId = sessionStorage.getItem("sessionId");
-      if (sessionId) {
-        localStorage.setItem(
-          `session_${sessionId}_profilePicture`,
-          newProfilePicture
-        );
-      }
-
-      setUserNames((prev) => ({ ...prev, [userId]: newProfilePicture }));
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      const response = await chatUtils.updateProfilePicture(userId, formData);
+      
+      const newProfilePictureUrl = `${API_URL}/${response.profilePicture}`;
+      
+      setProfilePicture(newProfilePictureUrl);
+      setSessionItem('profilePicture', response.profilePicture);
+  
+      setUserNames(prev => {
+        const currentUserData = prev[userId];
+        if (typeof currentUserData === 'string') {
+          return { ...prev, [userId]: { username: currentUserData, profilePicture: newProfilePictureUrl } };
+        } else {
+          return { ...prev, [userId]: { ...currentUserData, profilePicture: newProfilePictureUrl } };
+        }
+      });
+  
       setIsProfilePictureDialogOpen(false);
-      setNewProfilePictureUrl("");
+      setSelectedFile(null);
     } catch (error) {
-      console.error("Failed to update profile picture:", error);
-      setErrors((prev) => ({
+      console.error('Failed to update profile picture:', error);
+      setErrors(prev => ({
         ...prev,
-        updateProfilePictureFailed:
-          "Failed to update profile picture. Please try again.",
+        updateProfilePictureFailed: 'Faied to update profile picture. Please try again.',
       }));
     }
-  }, [userId, newProfilePictureUrl]);
-
+  }, [userId, selectedFile, setProfilePicture, setUserNames, setErrors]);
+  
   const handleUpdateGroupPicture = useCallback(async () => {
-    if (!selectedRoom) return;
+    if (!selectedRoom || !selectedFile) {
+      setErrors(prev => ({ ...prev, updateGroupPictureFailed: 'No room selected or no file selected' }));
+      return;
+    }
+
     try {
-      const newGroupPicture = await chatUtils.updateGroupPicture(
-        selectedRoom,
-        newGroupPictureUrl
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      const response = await chatUtils.updateGroupPicture(selectedRoom, formData);
+      
+      const newGroupPictureUrl = `${API_URL}/${response.groupPicture}`;
+      
+      const updatedGroups = groups.map(group =>
+        group._id === selectedRoom
+          ? { ...group, groupPicture: newGroupPictureUrl }
+          : group
       );
-      setGroups((prevGroups) =>
-        prevGroups.map((group) =>
-          group._id === selectedRoom
-            ? { ...group, groupPicture: newGroupPicture }
-            : group
-        )
-      );
+      setGroups(updatedGroups);
+      setSessionItem('groups', updatedGroups);
+
       setIsGroupPictureDialogOpen(false);
+      setSelectedFile(null);
     } catch (error) {
-      setErrors((prev) => ({
+      console.error('Failed to update group picture:', error);
+      setErrors(prev => ({
         ...prev,
-        updateGroupPictureFailed:
-          "Failed to update group picture. Please try again.",
+        updateGroupPictureFailed: 'Failed to update group picture. Please try again.',
       }));
     }
-  }, [selectedRoom, newGroupPictureUrl]);
-
+  }, [selectedRoom, selectedFile, groups, setGroups]);
   const handleLeaveGroup = useCallback(async () => {
     if (!selectedRoom) return;
     try {
@@ -490,6 +496,35 @@ export const useChatLogic = () => {
     }
   }, [userId]);
 
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'group') => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('image/')) {
+        setSelectedFile(file);
+      } else {
+        setErrors(prev => ({ ...prev, genericError: 'Please select an image file.' }));
+      }
+    }
+  }, [setErrors]);
+
+const fetchUserGroups = useCallback(async (userId: string) => {
+  try {
+    const fetchedGroups = await chatUtils.fetchUserGroups(userId);
+    const groupsWithPictures = fetchedGroups.map(group => {
+      if (group.groupPicture) {
+        const fullGroupPictureUrl = group.groupPicture.startsWith('http') 
+          ? group.groupPicture 
+          : `${API_URL}/${group.groupPicture.replace(/\\/g, '/')}`;
+        group.groupPicture = fullGroupPictureUrl;
+      }
+      return group;
+    });
+    setGroups(groupsWithPictures);
+    setSessionItem('groups', groupsWithPictures);
+  } catch (error) {
+    setError("Failed to fetch user groups. Please try again.");
+  }
+}, [setGroups, setError]);
   return {
     createGroup,
     joinGroupByName,
@@ -532,5 +567,6 @@ export const useChatLogic = () => {
     isLoading,
     errors,
     setErrors,
+    handleFileUpload,
   };
 };

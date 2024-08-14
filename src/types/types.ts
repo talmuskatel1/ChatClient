@@ -10,7 +10,7 @@ export type Message = {
     _id: string;
     name: string;
     members: string[];
-    groupPicture?: string;
+    groupPicture?: string | null;
   };
   
   export type User = {

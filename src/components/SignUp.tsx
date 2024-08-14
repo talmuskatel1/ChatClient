@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, TextField, Button, Snackbar } from '@mui/material';
 import { API } from '../services/api';
 import { setSessionUserId, setSessionItem } from '../utils/sessionUtils';
+import axios from 'axios';
 
 const SignUp: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -15,10 +16,20 @@ const SignUp: React.FC = () => {
       const response = await API.post('/users/signup', { username, password });
       const userId = response.data.userId;
       setSessionUserId(userId);
-      setSessionItem('profilePicture', response.data.profilePictureUrl);
+      setSessionItem('username', username);
+      // Only set profile picture if it exists
+      if (response.data.profilePictureUrl) {
+        setSessionItem('profilePicture', response.data.profilePictureUrl);
+      }
       navigate('/chat');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Sign up failed. Please try again.');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || 'Sign up failed. Please try again.');
+        console.error('Signup error:', error.response?.data);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+        console.error('Unexpected signup error:', error);
+      }
     }
   };
 

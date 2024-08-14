@@ -14,8 +14,9 @@ const Login: React.FC = () => {
     try {
       const response = await API.post('/users/login', { username, password });
       const userId = response.data.userId;
+      const profilePictureUrl = response.data.profilePictureUrl;
       setSessionUserId(userId);
-      setSessionItem('profilePicture', response.data.profilePictureUrl);
+      setSessionItem('profilePicture', profilePictureUrl);
       navigate('/chat');
     } catch (error: any) {
       setError(error.response?.data?.message || 'Login failed. Please try again.');
