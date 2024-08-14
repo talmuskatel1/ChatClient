@@ -4,6 +4,7 @@ import { Box, Paper, Typography, TextField, Button, Snackbar } from '@mui/materi
 import { API } from '../services/api';
 import { setSessionUserId, setSessionItem } from '../utils/sessionUtils';
 import axios from 'axios';
+import './SignUp.css';
 
 const SignUp: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -34,8 +35,8 @@ const SignUp: React.FC = () => {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-      <Paper elevation={3} sx={{ padding: 4, width: 300 }}>
+    <Box className="signup-container">
+      <Paper elevation={3} className="signup-paper">
         <Typography variant="h5" gutterBottom>Sign Up</Typography>
         <TextField
           fullWidth
@@ -52,7 +53,7 @@ const SignUp: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Box mt={2}>
+        <Box className="signup-button-container">
           <Button 
             variant="contained" 
             color="primary"
@@ -62,7 +63,7 @@ const SignUp: React.FC = () => {
             Sign Up
           </Button>
         </Box>
-        <Box mt={1}>
+        <Box className="login-link-container">
           <Button 
             variant="text" 
             onClick={() => navigate('/login')} 

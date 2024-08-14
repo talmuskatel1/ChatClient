@@ -1,8 +1,19 @@
+:root {
+  --primary-color: #1877f2;
+  --secondary-color: #42b72a;
+  --background-color: #f0f2f5;
+  --text-color: #050505;
+  --sent-message-color: #0084ff;
+  --received-message-color: #ffffff;
+  --sender-name-color: #65676b;
+}
+
 .chat-room {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #f0f2f5;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .message-list-container {
@@ -35,25 +46,28 @@
 }
 
 .message-container.sent .message-bubble {
-  background-color: #0084ff;
+  background-color: var(--sent-message-color);
   color: white;
   border-bottom-right-radius: 4px;
 }
 
 .message-container.received .message-bubble {
-  background-color: white;
-  color: #000;
+  background-color: var(--received-message-color);
+  color: var(--text-color);
   border-bottom-left-radius: 4px;
 }
 
 .sender-name {
   font-weight: bold;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-size: 0.9em;
+  color: var(--sender-name-color);
 }
 
 .message-content {
-  margin-bottom: 4px;
+  font-size: 1em;
+  line-height: 1.4;
+  margin-bottom: 16px; /* Increased margin to separate content from timestamp */
 }
 
 .message-time {
@@ -70,34 +84,18 @@
   border-top: 1px solid #e0e0e0;
 }
 
-/* Vibrant theme colors */
-:root {
-  --primary-color: #1877f2;
-  --secondary-color: #42b72a;
-  --background-color: #f0f2f5;
-  --text-color: #050505;
-  --sent-message-color: #0084ff;
-  --received-message-color: #ffffff;
-}
-
-/* Apply theme colors */
-.chat-room {
-  background-color: var(--background-color);
-  color: var(--text-color);
-}
-
-.message-container.sent .message-bubble {
-  background-color: var(--sent-message-color);
-}
-
-.message-container.received .message-bubble {
-  background-color: var(--received-message-color);
-}
-
 button {
   background-color: var(--primary-color);
 }
 
 button:hover {
   background-color: var(--secondary-color);
+}
+
+.message-container.sent .sender-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message-container.sent .message-time {
+  color: rgba(255, 255, 255, 0.7);
 }

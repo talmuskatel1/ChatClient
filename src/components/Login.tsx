@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, TextField, Button, Snackbar } from '@mui/material';
 import { API } from '../services/api';
 import { setSessionUserId, setSessionItem} from '../utils/sessionUtils';
+import './Login.css';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -24,8 +25,8 @@ const Login: React.FC = () => {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-      <Paper elevation={3} sx={{ padding: 4, width: 300 }}>
+    <Box className="login-container">
+      <Paper elevation={3} className="login-paper">
         <Typography variant="h5" gutterBottom>Login</Typography>
         <TextField
           fullWidth
@@ -42,7 +43,7 @@ const Login: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Box mt={2}>
+        <Box className="login-button-container">
           <Button 
             variant="contained" 
             color="primary"
@@ -52,7 +53,7 @@ const Login: React.FC = () => {
             Log In
           </Button>
         </Box>
-        <Box mt={1}>
+        <Box className="signup-link-container">
           <Button 
             variant="text" 
             onClick={() => navigate('/signup')} 
@@ -71,4 +72,5 @@ const Login: React.FC = () => {
     </Box>
   );
 };
+
 export default Login;

@@ -46,7 +46,7 @@ const Chat: React.FC = () => {
     joinRoom,
     sendMessage,
     anchorEl,
-    handleFileUpload
+    handleFileUpload,
   } = useChatLogic();
 
 
@@ -102,15 +102,15 @@ const Chat: React.FC = () => {
         {selectedRoom ? (
           <>
             <Box flexGrow={1} display="flex" flexDirection="column" overflow="hidden">
-              <ChatRoom
-                messages={messages}
-                userId={userId}
-                userNames={userNames}
-                inputMessage={inputMessage}
-                onInputChange={(e) => setInputMessage(e.target.value)}
-                onSendMessage={sendMessage}
-                messageListRef={messageListRef}
-              />
+            <ChatRoom
+      messages={messages}
+      userId={userId}
+      userNames={userNames}
+      inputMessage={inputMessage}
+      onInputChange={(e) => setInputMessage(e.target.value)}
+      onSendMessage={sendMessage}
+      messageListRef={messageListRef}
+    />
             </Box>
             <Box width={240} borderLeft={1} borderColor="divider" p={2} overflow="auto">
               <MemberList
